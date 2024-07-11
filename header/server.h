@@ -6,6 +6,7 @@
 #include <iostream>
 #include <chrono>
 #include "pirparams.h"
+#include <bitset>
 
 using namespace seal;
 using namespace utils;

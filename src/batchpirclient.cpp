@@ -113,7 +113,9 @@ bool BatchPIRClient::cuckoo_hash(vector<uint64_t> batch)
     key_to_buckets.clear();
 
     is_cuckoo_generated_ = true;
-
+    // for(auto i:cuckoo_table_){
+    //     std::cout<<i<<std::endl;
+    // }
     translate_cuckoo();
     return true;
 }
@@ -202,20 +204,22 @@ void BatchPIRClient::translate_cuckoo()
         if (cuckoo_table_[i] != batchpir_params_.get_default_value())
         {
             // convert from db index to bucket index
-            cuckoo_table_[i] = map_[to_string(cuckoo_table_[i]) + to_string(i)];
+            cuckoo_table_[i] = map_[to_string(cuckoo_table_[i]) +" "+ to_string(i)];
         }
     }
 }
 
 void BatchPIRClient::prepare_pir_clients()
 {
-
     size_t max_bucket_size = batchpir_params_.get_max_bucket_size();
     size_t entry_size = batchpir_params_.get_entry_size();
 
     size_t dim_size = batchpir_params_.get_first_dimension_size();
     auto max_slots = batchpir_params_.get_seal_parameters().poly_modulus_degree();
     auto num_buckets = ceil(batchpir_params_.get_batch_size() * batchpir_params_.get_cuckoo_factor());
+    std::cout<<"begin preparing------------------------------------------------------------------"<<std::endl;
+    std::cout<<"begin preparing----"<<dim_size<<std::endl;
+
     size_t per_client_capacity = max_slots / dim_size;
     size_t num_client = ceil(num_buckets / per_client_capacity);
     auto remaining_buckets = num_buckets;
@@ -224,6 +228,8 @@ void BatchPIRClient::prepare_pir_clients()
 
     for (int i = 0; i < num_client; i++)
     {
+        std::cout<<"preparing-------------------------"<<i<<"----------------------------------------"<<std::endl;
+
         const size_t num_dbs = std::min(per_client_capacity, static_cast<size_t>(num_buckets - previous_idx));
         previous_idx += num_dbs;
         PirParams params(max_bucket_size, entry_size, num_dbs, batchpir_params_.get_seal_parameters(), dim_size);
@@ -239,6 +245,7 @@ void BatchPIRClient::prepare_pir_clients()
             client_list_.push_back(client);
         }
     }
+    std::cout<<"end preparing------------------------------------------------------------------"<<std::endl;
 }
 
 vector<RawDB> BatchPIRClient::decode_responses(vector<PIRResponseList> responses)
@@ -297,4 +304,66 @@ std::pair<seal::GaloisKeys, seal::RelinKeys> BatchPIRClient::get_public_keys()
     std::pair<seal::GaloisKeys, seal::RelinKeys> keys;
     keys = client_list_[0].get_public_keys();
     return keys;
+}
+__m128i convertToM128i(std::vector<unsigned char> &byteVector)
+{
+    __m128i result = _mm_setzero_si128(); // Initialize result to zero
+
+    // Load 16 bytes into __m128i register
+    if (byteVector.size() >= 16)
+    {
+        result = _mm_loadu_si128(reinterpret_cast<const __m128i *>(byteVector.data()));
+    }
+    else
+    {
+        // Handle case where vector size is less than 16 bytes
+        alignas(16) unsigned char temp[16] = {0};
+        for (size_t i = 0; i < byteVector.size(); ++i)
+        {
+            temp[i] = byteVector[i];
+        }
+        result = _mm_load_si128(reinterpret_cast<const __m128i *>(temp));
+    }
+
+    return result;
+}
+std::tuple<__m128i, __m128i> convertToM128iTuple(std::vector<unsigned char> &byteVector) {
+    __m128i part1 = _mm_setzero_si128(); // Initialize part1 to zero
+    __m128i part2 = _mm_setzero_si128(); // Initialize part2 to zero
+
+    // Load up to 16 bytes into each __m128i register
+    alignas(16) unsigned char temp[32] = {0}; // Temporary buffer to hold up to 32 bytes
+    size_t bytesToCopy = std::min(byteVector.size(), static_cast<size_t>(32));
+    std::memcpy(temp, byteVector.data(), bytesToCopy);
+
+    part1 = _mm_load_si128(reinterpret_cast<const __m128i *>(temp));
+    part2 = _mm_load_si128(reinterpret_cast<const __m128i *>(temp + 16));
+
+    return std::make_tuple(part1, part2);
+}
+std::vector<std::tuple<__m128i,__m128i>> BatchPIRClient::extractResponse(vector<std::vector<std::vector<unsigned char>>> entries_list, vector<uint64_t> cuckoo_table)
+{
+    size_t entry_size = batchpir_params_.get_entry_size();
+    size_t dim_size = batchpir_params_.get_first_dimension_size();
+    auto max_slots = batchpir_params_.get_seal_parameters().poly_modulus_degree();
+    auto num_buckets = cuckoo_table.size();
+    size_t per_server_capacity = max_slots / dim_size;
+    size_t num_servers = ceil(num_buckets / per_server_capacity);
+    auto previous_idx = 0;
+    std::vector<std::tuple<__m128i,__m128i>> extract_ans;
+    extract_ans.reserve(batchpir_params_.get_batch_size());
+    for (int i = 0; i < entries_list.size(); i++)
+    {
+        const size_t offset = std::min(per_server_capacity, num_buckets - previous_idx);
+        vector<uint64_t> sub_buckets(cuckoo_table.begin() + previous_idx, cuckoo_table.begin() + previous_idx + offset);
+        previous_idx += offset;
+        for (auto j = 0; j < entries_list[i].size(); j++)
+        {
+            if (sub_buckets[j] !=std::numeric_limits<uint64_t>::max())
+            {
+                extract_ans.emplace_back(convertToM128iTuple(entries_list[i][j]));
+            }
+        }
+    }
+    return extract_ans;
 }

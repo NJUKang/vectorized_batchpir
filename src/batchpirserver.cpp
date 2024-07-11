@@ -19,7 +19,53 @@ BatchPIRServer::BatchPIRServer(BatchPirParams &batchpir_params)
     prepare_pir_server();
     std::cout << "BatchPIRServer: PIR servers preparation complete." << std::endl;
 }
+std::vector<unsigned char> convertToVector(__m128i vec)
+{
+    std::vector<unsigned char> result(16); // 128 位等于 16 字节
+    _mm_storeu_si128(reinterpret_cast<__m128i *>(result.data()), vec);
+    return result;
+}
+std::vector<unsigned char> convertTupleToVector(const std::tuple<__m128i, __m128i> &vecTuple) {
+    std::vector<unsigned char> result(32); // 2 x 128 bits = 2 x 16 bytes = 32 bytes
 
+    // Extract the __m128i values from the tuple
+    __m128i part1 = std::get<0>(vecTuple);
+    __m128i part2 = std::get<1>(vecTuple);
+
+    // Store the __m128i values into the vector
+    _mm_storeu_si128(reinterpret_cast<__m128i *>(result.data()), part1);
+    _mm_storeu_si128(reinterpret_cast<__m128i *>(result.data() + 16), part2);
+
+    return result;
+}
+BatchPIRServer::BatchPIRServer(BatchPirParams &batchpir_params, std::vector<std::tuple<__m128i,__m128i>> data)
+{
+    batchpir_params_ = &batchpir_params;
+    is_client_keys_set_ = false;
+    is_simple_hash_ = false;
+
+    std::cout << "BatchPIRServer: Populating raw database..." << std::endl;
+    auto db_entries = batchpir_params_->get_num_entries();
+    auto entry_size = batchpir_params_->get_entry_size();
+
+    // Resize the rawdb vector to the correct size
+    rawdb_.resize(db_entries);
+    // Populate the rawdb vector with entries
+    for (size_t i = 0; i < db_entries; ++i)
+    {
+        rawdb_[i] = convertTupleToVector(data[i]);
+    }
+    std::cout << "BatchPIRServer: Raw database populated." << std::endl;
+
+    std::cout << "BatchPIRServer: Performing simple hash and bucket balancing..." << std::endl;
+    simeple_hash();
+    balance_buckets();
+    std::cout << "BatchPIRServer: Simple hash and balancing completed." << std::endl;
+
+    std::cout << "BatchPIRServer: Preparing PIR servers......" << std::endl;
+    prepare_pir_server();
+    std::cout << "BatchPIRServer: PIR servers preparation complete." << std::endl;
+}
 void BatchPIRServer::populate_raw_db()
 {
     auto db_entries = batchpir_params_->get_num_entries();
@@ -29,13 +75,13 @@ void BatchPIRServer::populate_raw_db()
     rawdb_.resize(db_entries);
 
     // Define a function to generate a random entry
-    auto generate_random_entry = [entry_size]() -> std::vector<unsigned char>
+    auto generate_random_entry = [entry_size](int i) -> std::vector<unsigned char>
     {
         std::vector<unsigned char> entry(entry_size);
-        std::generate(entry.begin(), entry.end(), []()
+        std::generate(entry.begin(), entry.end(), [i]()
                       {
-                          return rand() % 0xFF;
-                          // return 1;
+                          return 1 % 0xFF;
+                          // return 1;s
                       });
         return entry;
     };
@@ -43,7 +89,7 @@ void BatchPIRServer::populate_raw_db()
     // Populate the rawdb vector with entries
     for (size_t i = 0; i < db_entries; ++i)
     {
-        rawdb_[i] = generate_random_entry();
+        rawdb_[i] = generate_random_entry(i);
     }
 }
 
@@ -99,8 +145,9 @@ void BatchPIRServer::simeple_hash()
         std::vector<size_t> candidates = utils::get_candidate_buckets(i, num_candidates, total_buckets);
         for (auto b : candidates)
         {
+            if(i<=32)std::cout<<i<<" "<<b<<" "<<buckets_[b].size()<<std::endl;
+            map_[to_string(i) +" "+ to_string(b)] = buckets_[b].size();
             buckets_[b].push_back(rawdb_[i]);
-            map_[to_string(i) + to_string(b)] = buckets_[b].size();
         }
     }
 

@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include "pirparams.h"
+#include <bitset>
 
 class Client {
 public:

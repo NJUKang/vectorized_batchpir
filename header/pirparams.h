@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
-#include "src/utils.h"
+#include "../src/utils.h"
 #include "seal/seal.h"
 
 

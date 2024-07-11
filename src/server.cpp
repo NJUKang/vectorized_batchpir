@@ -369,7 +369,6 @@ PIRResponseList Server::merge_responses_chunks_buckets(vector<PIRResponseList> &
     {
         auto remaining_slots_entry = num_slots_per_entry;
 
-        
         // number of ciphertexts needed to  pack chunks
         for (int j = 0; j < num_chunk_ctx; j++)
         {
@@ -388,14 +387,12 @@ PIRResponseList Server::merge_responses_chunks_buckets(vector<PIRResponseList> &
         }
     }
 
-    
     auto current_fill = gap_ * num_slots_per_entry;
     size_t num_buckets_merged = (row_size_ / current_fill);
 
-
     // for now if chunks are in multiple ciphertexts then return
     // if remaining
-    if (ceil(num_slots_per_entry * 1.0 / max_empty_slots) > 1 || num_buckets_merged <= 1 || chunk_response.size() == 1 )
+    if (ceil(num_slots_per_entry * 1.0 / max_empty_slots) > 1 || num_buckets_merged <= 1 || chunk_response.size() == 1)
     {
         modulus_switch(chunk_response);
         return chunk_response;
@@ -440,16 +437,16 @@ PIRResponseList Server::merge_responses_chunks_buckets(vector<PIRResponseList> &
         chunk_bucket_responses.push_back(ct_acc);
     }
 
-    
     modulus_switch(chunk_bucket_responses);
     return chunk_bucket_responses;
 }
 
-void Server::modulus_switch(PIRResponseList& list){
-    for( int i = 0; i < list.size(); i++){
+void Server::modulus_switch(PIRResponseList &list)
+{
+    for (int i = 0; i < list.size(); i++)
+    {
         evaluator_->mod_switch_to_next_inplace(list[i]);
-        //evaluator_->mod_switch_to_next_inplace(list[i]);
-    
+        // evaluator_->mod_switch_to_next_inplace(list[i]);
     }
 }
 
@@ -662,7 +659,7 @@ std::vector<uint64_t> Server::convert_to_list_of_coeff(std::vector<unsigned char
 
     for (int i = 0; i < size_of_input; i++)
     {
-        bit_str += std::bitset<8>(input_list[i]).to_string();
+        bit_str += (std::bitset<8>(input_list[i])).to_string();
     }
 
     if (remain != 0)
@@ -674,7 +671,8 @@ std::vector<uint64_t> Server::convert_to_list_of_coeff(std::vector<unsigned char
     for (int i = 0; i < cols; i++)
     {
         uint64_t value = 0;
-        for (char bit : bit_str.substr(i * size_of_coeff, size_of_coeff)) {
+        for (char bit : bit_str.substr(i * size_of_coeff, size_of_coeff))
+        {
             value <<= 1;
             value |= (bit == '1') ? 1 : 0;
         }
@@ -785,7 +783,7 @@ vector<Ciphertext> Server::process_first_dimension_delayed_mod(uint32_t client_i
         }
 
         evaluator_->transform_from_ntt_inplace(ct_acc);
-        //evaluator_->mod_switch_to_next_inplace(ct_acc);
+        // evaluator_->mod_switch_to_next_inplace(ct_acc);
         first_intermediate_data.push_back(ct_acc);
     }
     return first_intermediate_data;
@@ -803,7 +801,7 @@ vector<Ciphertext> Server::old_process_first_dimension_delayed_mod(uint32_t clie
     auto &coeff_modulus = parms.coeff_modulus();
     size_t coeff_count = parms.poly_modulus_degree();
     size_t coeff_mod_count = coeff_modulus.size();
-    
+
     size_t encrypted_ntt_size = rotated_query[0].size();
 
     for (int col_id = 0; col_id < encoded_db_.size(); col_id += pir_dimensions_[1])
@@ -842,7 +840,7 @@ vector<Ciphertext> Server::process_second_dimension(uint32_t client_id, vector<C
 
     Ciphertext ct_acc;
     Ciphertext ct1, ct2;
-    
+
     for (int idx = 0; idx < first_intermediate_data.size(); idx += pir_dimensions_[2])
     {
 
@@ -860,7 +858,6 @@ vector<Ciphertext> Server::process_second_dimension(uint32_t client_id, vector<C
             evaluator_->add_inplace(ct_acc, ct1);
         }
 
-        
         second_intermediate_data.push_back(ct_acc);
     }
 
@@ -876,7 +873,8 @@ vector<Ciphertext> Server::process_second_dimension(uint32_t client_id, vector<C
 PIRResponseList Server::process_last_dimension(uint32_t client_id, vector<Ciphertext> second_intermediate_data, bool is_2d_pir_)
 {
     PIRResponseList ct_acc;
-    if(!is_2d_pir_){
+    if (!is_2d_pir_)
+    {
         evaluator_->mod_switch_to_next_inplace(query_.back());
     }
     for (int idx = 0; idx < second_intermediate_data.size(); idx++)
@@ -918,9 +916,12 @@ PIRResponseList Server::generate_response(uint32_t client_id, PIRQuery query)
     // Time process_second_dimension function
     // start = chrono::high_resolution_clock::now();
     vector<Ciphertext> second_intermediate_data;
-    if(pir_dimensions_.size() == 3){
+    if (pir_dimensions_.size() == 3)
+    {
         second_intermediate_data = process_second_dimension(client_id, first_intermediate_data);
-    }else{
+    }
+    else
+    {
         second_intermediate_data = first_intermediate_data;
     }
     // end = chrono::high_resolution_clock::now();
@@ -969,7 +970,6 @@ bool Server::check_decoded_entry(std::vector<unsigned char> entry, int index)
 
     return result;
 }
-
 bool Server::check_decoded_entries(std::vector<std::vector<unsigned char>> entries, vector<uint64_t> indices)
 {
     for (int i = 0; i < num_databases_; i++)
