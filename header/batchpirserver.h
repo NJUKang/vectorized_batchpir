@@ -13,7 +13,7 @@ public:
     
     BatchPIRServer( BatchPirParams& batchpir_params);
     BatchPIRServer(BatchPirParams &batchpir_params, std::vector<std::tuple<__m128i,__m128i>> data);
-    std::unordered_map<std::string, uint64_t> get_hash_map() const;
+    std::unordered_map<std::string, uint64_t> get_hash_map();
     void set_client_keys(uint32_t client_id, std::pair<seal::GaloisKeys, seal::RelinKeys> keys);
     void get_client_keys();
     PIRResponseList generate_response(uint32_t client_id, vector<PIRQuery> queries);

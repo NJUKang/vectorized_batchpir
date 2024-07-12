@@ -21,6 +21,7 @@ bool BatchPIRClient::cuckoo_insert(uint64_t key, size_t attempt, std::unordered_
         if (bucket_to_key.find(v) == bucket_to_key.end())
         {
             bucket_to_key[v] = key;
+            key_to_bucket_[key]=v;
             return true;
         }
     }
@@ -30,6 +31,7 @@ bool BatchPIRClient::cuckoo_insert(uint64_t key, size_t attempt, std::unordered_
     auto picked_bucket = candidate_buckets[idx];
     auto old = bucket_to_key[picked_bucket];
     bucket_to_key[picked_bucket] = key;
+    key_to_bucket_[key]=picked_bucket;
 
     cuckoo_insert(old, attempt + 1, key_to_buckets, bucket_to_key);
     return true;
@@ -176,11 +178,22 @@ void BatchPIRClient::measure_size(vector<Ciphertext> list, size_t seeded){
 size_t BatchPIRClient::get_serialized_commm_size(){
     return ceil(serialized_comm_size_/1024);
 }
+std::string remove_null_characters(const std::string &str) {
+    std::string result;
+    for (char ch : str) {
+        if (ch != '\0') {
+            result += ch;
+        }
+    }
+    return result;
+}
 
-
-void BatchPIRClient::set_map(std::unordered_map<std::string, uint64_t> map)
+void BatchPIRClient::set_map(std::unordered_map<std::string, uint64_t>& map)
 {
-    map_ = map;
+    for (const auto &pair : map) {
+        std::string cleaned_first = remove_null_characters(pair.first);
+        map_[cleaned_first]=pair.second;
+    }
     is_map_set_ = true;
 }
 
@@ -189,6 +202,10 @@ vector<uint64_t> BatchPIRClient::get_cuckoo_table()
 {
     return cuckoo_table_;
 }
+vector<uint64_t> BatchPIRClient::get_cuckoo_table_raw()
+{
+    return cuckoo_table__raw_;
+}
 
 void BatchPIRClient::translate_cuckoo()
 {
@@ -196,14 +213,13 @@ void BatchPIRClient::translate_cuckoo()
     {
         throw std::runtime_error("Error: Cannot translate the data because either the map has not been set or the cuckoo hash table has not been generated.");
     }
-
     auto num_buckets = cuckoo_table_.size();
+    cuckoo_table__raw_=cuckoo_table_;
     for (int i = 0; i < num_buckets; i++)
     {
         // check if bucket is empty
         if (cuckoo_table_[i] != batchpir_params_.get_default_value())
         {
-            // convert from db index to bucket index
             cuckoo_table_[i] = map_[to_string(cuckoo_table_[i]) +" "+ to_string(i)];
         }
     }
@@ -341,7 +357,7 @@ std::tuple<__m128i, __m128i> convertToM128iTuple(std::vector<unsigned char> &byt
 
     return std::make_tuple(part1, part2);
 }
-std::vector<std::tuple<__m128i,__m128i>> BatchPIRClient::extractResponse(vector<std::vector<std::vector<unsigned char>>> entries_list, vector<uint64_t> cuckoo_table)
+std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> BatchPIRClient::extractResponse(vector<std::vector<std::vector<unsigned char>>> entries_list, vector<uint64_t> cuckoo_table)
 {
     size_t entry_size = batchpir_params_.get_entry_size();
     size_t dim_size = batchpir_params_.get_first_dimension_size();
@@ -350,20 +366,20 @@ std::vector<std::tuple<__m128i,__m128i>> BatchPIRClient::extractResponse(vector<
     size_t per_server_capacity = max_slots / dim_size;
     size_t num_servers = ceil(num_buckets / per_server_capacity);
     auto previous_idx = 0;
-    std::vector<std::tuple<__m128i,__m128i>> extract_ans;
+    std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> extract_ans;
     extract_ans.reserve(batchpir_params_.get_batch_size());
     for (int i = 0; i < entries_list.size(); i++)
     {
         const size_t offset = std::min(per_server_capacity, num_buckets - previous_idx);
         vector<uint64_t> sub_buckets(cuckoo_table.begin() + previous_idx, cuckoo_table.begin() + previous_idx + offset);
-        previous_idx += offset;
         for (auto j = 0; j < entries_list[i].size(); j++)
         {
             if (sub_buckets[j] !=std::numeric_limits<uint64_t>::max())
             {
-                extract_ans.emplace_back(convertToM128iTuple(entries_list[i][j]));
+                extract_ans[sub_buckets[j]]=(convertToM128iTuple(entries_list[i][j]));
             }
         }
+        previous_idx += offset;
     }
     return extract_ans;
 }

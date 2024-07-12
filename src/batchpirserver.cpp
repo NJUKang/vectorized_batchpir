@@ -93,13 +93,14 @@ void BatchPIRServer::populate_raw_db()
     }
 }
 
-std::unordered_map<std::string, uint64_t> BatchPIRServer::get_hash_map() const
+std::unordered_map<std::string, uint64_t> BatchPIRServer::get_hash_map() 
 {
 
     if (!is_simple_hash_)
     {
         throw std::logic_error("Error: No map created yet");
     }
+    std::cout<<"map:"<<map_["16 29"]<<"nono"<<std::endl;
     return map_;
 }
 
@@ -145,13 +146,10 @@ void BatchPIRServer::simeple_hash()
         std::vector<size_t> candidates = utils::get_candidate_buckets(i, num_candidates, total_buckets);
         for (auto b : candidates)
         {
-            if(i<=32)std::cout<<i<<" "<<b<<" "<<buckets_[b].size()<<std::endl;
             map_[to_string(i) +" "+ to_string(b)] = buckets_[b].size();
             buckets_[b].push_back(rawdb_[i]);
         }
     }
-
-    // print_stats();
 
     batchpir_params_->set_max_bucket_size(get_max_bucket_size());
     balance_buckets();

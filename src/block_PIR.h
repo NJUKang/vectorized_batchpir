@@ -13,6 +13,7 @@
 #include "../header/batchpirclient.h"
 #include <iostream>
 #include "../../Kunlun/netio/stream_channel.hpp"
+#include <unordered_map>
 void printM128iVector(const std::vector<__m128i> &vec)
 {
     for (size_t i = 0; i < vec.size(); ++i)
@@ -30,29 +31,35 @@ void printM128iVector(const std::vector<__m128i> &vec)
         std::cout << "]" << std::endl;
     }
 }
-void printBlockTupleVector(const std::vector<std::tuple<block, block>> &vec) {
-    for (size_t i = 0; i < vec.size(); ++i) {
-        const auto &tupleElement = vec[i];
+void printBlockTupleVector(const std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> &dict)
+{
+    for (auto &pair : dict)
+    {
+        const auto &tupleElement = pair.second;
         const block &first = std::get<0>(tupleElement);
         const block &second = std::get<1>(tupleElement);
 
         const int *p1 = reinterpret_cast<const int *>(&first);
         const int *p2 = reinterpret_cast<const int *>(&second);
 
-        std::cout << "Element " << i << ":\n";
+        std::cout << "Element " << pair.first << ":\n";
         std::cout << "  First block: [";
-        for (int j = 0; j < 4; ++j) {
+        for (int j = 0; j < 4; ++j)
+        {
             std::cout << p1[j];
-            if (j < 3) {
+            if (j < 3)
+            {
                 std::cout << ", ";
             }
         }
         std::cout << "]\n";
 
         std::cout << "  Second block: [";
-        for (int j = 0; j < 4; ++j) {
+        for (int j = 0; j < 4; ++j)
+        {
             std::cout << p2[j];
-            if (j < 3) {
+            if (j < 3)
+            {
                 std::cout << ", ";
             }
         }
@@ -128,14 +135,14 @@ stringstream recvStringStream(NetIO &io)
 }
 void batchpir_combined()
 {
-    std::vector<std::tuple<__m128i, __m128i>> values(1ull<<20);
+    std::vector<std::tuple<__m128i, __m128i>> values(1ull << 20);
 
-    for (size_t i = 0; i < 1ull<<20; ++i)
+    for (size_t i = 0; i < 1ull << 20; ++i)
     {
         values[i] = std::make_tuple(_mm_set_epi32(i + 1, i + 1, i + 1, i + 1), _mm_set_epi32(i + 1, i + 1, i + 1, i + 1)); // 将第i个元素设置为__m128i(i)
     }
     std::vector<uint64_t> entry_indices; // 示例 entry indices
-    for (auto i = 0; i < 1ull<<8; i++)
+    for (auto i = 0; i < 1ull << 8; i++)
     {
         entry_indices.emplace_back(i);
     }
@@ -216,7 +223,7 @@ void batchpir_combined()
     auto cuckoo_table = batch_client.get_cuckoo_table();
     auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
     printBlockTupleVector(extract_response);
-    //getchar();
+    // getchar();
 }
 void batchpir_server(NetIO &io, std::vector<std::tuple<block, block>> values)
 {
@@ -270,10 +277,10 @@ void batchpir_server(NetIO &io, std::vector<std::tuple<block, block>> values)
     sendStringStream(io, response_ss);
 
     std::cout << "Server: Response generation and sending complete." << std::endl;
-    //getchar();
+    // getchar();
 }
 
-void batchpir_client(NetIO &io, std::vector<uint64_t> entry_indices)
+std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client(NetIO &io, std::vector<uint64_t> entry_indices)
 {
     auto query_num = entry_indices.size();
     io.SendInteger(query_num);
@@ -323,12 +330,13 @@ void batchpir_client(NetIO &io, std::vector<uint64_t> entry_indices)
     }
 
     auto decode_responses = batch_client.decode_responses_chunks(responses);
-    auto cuckoo_table = batch_client.get_cuckoo_table();
+    auto cuckoo_table = batch_client.get_cuckoo_table_raw();
     auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
     printBlockTupleVector(extract_response);
 
-    std::cout << "Client: Response received and processed." << std::endl;
-    //getchar();
+    // std::cout << "Client: Response received and processed." << std::endl;
+    // getchar();
+    return extract_response;
 }
 
 int batchpir_test(int argc, char *argv[])
@@ -368,7 +376,13 @@ int batchpir_test(int argc, char *argv[])
         BatchPIRClient batch_client(params);
 
         auto map = batch_server.get_hash_map();
-        batch_client.set_map(map);
+        std::unordered_map<std::string, uint64_t> map_1;
+        map_1["16 29"] = 42;
+        map_1["17 30"] = 84;
+
+        std::cout << "map:" << map_1["16 29"] << "nono" << std::endl;
+        map_1["16 29"] = 2;
+        batch_client.set_map(map_1);
 
         batch_server.set_client_keys(client_id, batch_client.get_public_keys());
 
@@ -414,8 +428,12 @@ int batchpir_test(int argc, char *argv[])
         //         printM128iVector({convertToM128i(table[i][cuckoo_table[i]])});
         //     }
         // }
+        // for(auto i:cuckoo_table){
+        //     std::cout<<i<<std::endl;
+        // }
         auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
         printBlockTupleVector(extract_response);
+        batch_server.check_decoded_entries(decode_responses, cuckoo_table);
     }
 
     cout << "***********************" << endl;
@@ -455,7 +473,7 @@ int batchpir_test2(int argc, char *argv[])
         NetIO io("client", "127.0.0.1", 9090);
         std::cout << "begin------" << std::endl;
         std::vector<uint64_t> entry_indices; // 示例 entry indices
-        for (auto i = 0; i < 1ull << 8; i++)
+        for (auto i = 0; i < 1ull << 5; i++)
         {
             entry_indices.emplace_back(i);
         }
@@ -467,7 +485,7 @@ int batchpir_test2(int argc, char *argv[])
         std::cout << "Server process started." << std::endl;
         NetIO io("server", "", 9090);
 
-        std::vector<std::tuple<block, block>> values(1ull << 20); // 示例数据
+        std::vector<std::tuple<block, block>> values(1ull << 10); // 示例数据
         for (size_t i = 0; i < values.size(); ++i)
         {
             values[i] = std::make_tuple(_mm_set_epi32(i + 1, i + 1, i + 1, i + 1), _mm_set_epi32(i + 1, i + 1, i + 1, i + 1));
