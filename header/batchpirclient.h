@@ -12,7 +12,7 @@ using namespace std;
 class BatchPIRClient {
 public:
     BatchPIRClient(const BatchPirParams& params);
-    void set_map(std::unordered_map<std::string, uint64_t>& map);
+    void set_map(std::unordered_map<uint64_t, uint64_t>& map);
     vector<PIRQuery> create_queries(vector<uint64_t> batch);
     vector<RawResponses> decode_responses(vector<PIRResponseList> responses);
     vector<RawResponses> decode_responses_chunks(PIRResponseList responses);
@@ -32,7 +32,7 @@ private:
     std::unordered_map<uint64_t, uint64_t> key_to_bucket_;
     bool is_cuckoo_generated_;
     bool is_map_set_;
-    std::unordered_map<std::string, uint64_t> map_;
+    std::unordered_map<uint64_t, uint64_t> map_;
     vector<Client> client_list_;
     size_t serialized_comm_size_ = 0;
 

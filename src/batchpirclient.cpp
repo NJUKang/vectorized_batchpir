@@ -21,7 +21,7 @@ bool BatchPIRClient::cuckoo_insert(uint64_t key, size_t attempt, std::unordered_
         if (bucket_to_key.find(v) == bucket_to_key.end())
         {
             bucket_to_key[v] = key;
-            key_to_bucket_[key]=v;
+            key_to_bucket_[key] = v;
             return true;
         }
     }
@@ -31,7 +31,7 @@ bool BatchPIRClient::cuckoo_insert(uint64_t key, size_t attempt, std::unordered_
     auto picked_bucket = candidate_buckets[idx];
     auto old = bucket_to_key[picked_bucket];
     bucket_to_key[picked_bucket] = key;
-    key_to_bucket_[key]=picked_bucket;
+    key_to_bucket_[key] = picked_bucket;
 
     cuckoo_insert(old, attempt + 1, key_to_buckets, bucket_to_key);
     return true;
@@ -67,8 +67,6 @@ vector<PIRQuery> BatchPIRClient::create_queries(vector<uint64_t> batch)
 
     return queries;
 }
-
-
 
 bool BatchPIRClient::cuckoo_hash(vector<uint64_t> batch)
 {
@@ -167,36 +165,37 @@ bool BatchPIRClient::cuckoo_hash_witout_checks(vector<uint64_t> batch)
     return true;
 }
 
-void BatchPIRClient::measure_size(vector<Ciphertext> list, size_t seeded){
+void BatchPIRClient::measure_size(vector<Ciphertext> list, size_t seeded)
+{
 
-
-    for (int i=0; i < list.size(); i++){
-    serialized_comm_size_ += ceil(list[i].save_size()/seeded);
+    for (int i = 0; i < list.size(); i++)
+    {
+        serialized_comm_size_ += ceil(list[i].save_size() / seeded);
     }
 }
 
-size_t BatchPIRClient::get_serialized_commm_size(){
-    return ceil(serialized_comm_size_/1024);
+size_t BatchPIRClient::get_serialized_commm_size()
+{
+    return ceil(serialized_comm_size_ / 1024);
 }
-std::string remove_null_characters(const std::string &str) {
+std::string remove_null_characters(const std::string &str)
+{
     std::string result;
-    for (char ch : str) {
-        if (ch != '\0') {
+    for (char ch : str)
+    {
+        if (ch != '\0')
+        {
             result += ch;
         }
     }
     return result;
 }
 
-void BatchPIRClient::set_map(std::unordered_map<std::string, uint64_t>& map)
+void BatchPIRClient::set_map(std::unordered_map<uint64_t, uint64_t> &map)
 {
-    for (const auto &pair : map) {
-        std::string cleaned_first = remove_null_characters(pair.first);
-        map_[cleaned_first]=pair.second;
-    }
+    map_ = map;
     is_map_set_ = true;
 }
-
 
 vector<uint64_t> BatchPIRClient::get_cuckoo_table()
 {
@@ -214,13 +213,15 @@ void BatchPIRClient::translate_cuckoo()
         throw std::runtime_error("Error: Cannot translate the data because either the map has not been set or the cuckoo hash table has not been generated.");
     }
     auto num_buckets = cuckoo_table_.size();
-    cuckoo_table__raw_=cuckoo_table_;
+    cuckoo_table__raw_ = cuckoo_table_;
+    auto num_entries = batchpir_params_.get_num_entries();
     for (int i = 0; i < num_buckets; i++)
     {
         // check if bucket is empty
         if (cuckoo_table_[i] != batchpir_params_.get_default_value())
         {
-            cuckoo_table_[i] = map_[to_string(cuckoo_table_[i]) +" "+ to_string(i)];
+            // std::cout << cuckoo_table_[i]  <<" "<<i << " " << cuckoo_table_[i] * num_entries + i << "found?=" << (map_.find(cuckoo_table_[i] * num_entries + i) != map_.end()) << std::endl;
+            cuckoo_table_[i] = map_[cuckoo_table_[i] * num_entries + i];
         }
     }
 }
@@ -233,8 +234,8 @@ void BatchPIRClient::prepare_pir_clients()
     size_t dim_size = batchpir_params_.get_first_dimension_size();
     auto max_slots = batchpir_params_.get_seal_parameters().poly_modulus_degree();
     auto num_buckets = ceil(batchpir_params_.get_batch_size() * batchpir_params_.get_cuckoo_factor());
-    std::cout<<"begin preparing------------------------------------------------------------------"<<std::endl;
-    std::cout<<"begin preparing----"<<dim_size<<std::endl;
+    std::cout << "begin preparing------------------------------------------------------------------" << std::endl;
+    std::cout << "begin preparing----" << dim_size << std::endl;
 
     size_t per_client_capacity = max_slots / dim_size;
     size_t num_client = ceil(num_buckets / per_client_capacity);
@@ -244,7 +245,7 @@ void BatchPIRClient::prepare_pir_clients()
 
     for (int i = 0; i < num_client; i++)
     {
-        std::cout<<"preparing-------------------------"<<i<<"----------------------------------------"<<std::endl;
+        std::cout << "preparing-------------------------" << i << "----------------------------------------" << std::endl;
 
         const size_t num_dbs = std::min(per_client_capacity, static_cast<size_t>(num_buckets - previous_idx));
         previous_idx += num_dbs;
@@ -261,7 +262,7 @@ void BatchPIRClient::prepare_pir_clients()
             client_list_.push_back(client);
         }
     }
-    std::cout<<"end preparing------------------------------------------------------------------"<<std::endl;
+    std::cout << "end preparing------------------------------------------------------------------" << std::endl;
 }
 
 vector<RawDB> BatchPIRClient::decode_responses(vector<PIRResponseList> responses)
@@ -343,7 +344,8 @@ __m128i convertToM128i(std::vector<unsigned char> &byteVector)
 
     return result;
 }
-std::tuple<__m128i, __m128i> convertToM128iTuple(std::vector<unsigned char> &byteVector) {
+std::tuple<__m128i, __m128i> convertToM128iTuple(std::vector<unsigned char> &byteVector)
+{
     __m128i part1 = _mm_setzero_si128(); // Initialize part1 to zero
     __m128i part2 = _mm_setzero_si128(); // Initialize part2 to zero
 
@@ -374,9 +376,9 @@ std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> BatchPIRClient::extra
         vector<uint64_t> sub_buckets(cuckoo_table.begin() + previous_idx, cuckoo_table.begin() + previous_idx + offset);
         for (auto j = 0; j < entries_list[i].size(); j++)
         {
-            if (sub_buckets[j] !=std::numeric_limits<uint64_t>::max())
+            if (sub_buckets[j] != std::numeric_limits<uint64_t>::max())
             {
-                extract_ans[sub_buckets[j]]=(convertToM128iTuple(entries_list[i][j]));
+                extract_ans[sub_buckets[j]] = (convertToM128iTuple(entries_list[i][j]));
             }
         }
         previous_idx += offset;

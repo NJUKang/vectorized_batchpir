@@ -25,7 +25,8 @@ std::vector<unsigned char> convertToVector(__m128i vec)
     _mm_storeu_si128(reinterpret_cast<__m128i *>(result.data()), vec);
     return result;
 }
-std::vector<unsigned char> convertTupleToVector(const std::tuple<__m128i, __m128i> &vecTuple) {
+std::vector<unsigned char> convertTupleToVector(const std::tuple<__m128i, __m128i> &vecTuple)
+{
     std::vector<unsigned char> result(32); // 2 x 128 bits = 2 x 16 bytes = 32 bytes
 
     // Extract the __m128i values from the tuple
@@ -38,7 +39,7 @@ std::vector<unsigned char> convertTupleToVector(const std::tuple<__m128i, __m128
 
     return result;
 }
-BatchPIRServer::BatchPIRServer(BatchPirParams &batchpir_params, std::vector<std::tuple<__m128i,__m128i>> data)
+BatchPIRServer::BatchPIRServer(BatchPirParams &batchpir_params, std::vector<std::tuple<__m128i, __m128i>> data)
 {
     batchpir_params_ = &batchpir_params;
     is_client_keys_set_ = false;
@@ -93,14 +94,13 @@ void BatchPIRServer::populate_raw_db()
     }
 }
 
-std::unordered_map<std::string, uint64_t> BatchPIRServer::get_hash_map() 
+std::unordered_map<uint64_t, uint64_t> BatchPIRServer::get_hash_map()
 {
 
     if (!is_simple_hash_)
     {
         throw std::logic_error("Error: No map created yet");
     }
-    std::cout<<"map:"<<map_["16 29"]<<"nono"<<std::endl;
     return map_;
 }
 
@@ -146,7 +146,8 @@ void BatchPIRServer::simeple_hash()
         std::vector<size_t> candidates = utils::get_candidate_buckets(i, num_candidates, total_buckets);
         for (auto b : candidates)
         {
-            map_[to_string(i) +" "+ to_string(b)] = buckets_[b].size();
+            // std::cout<<i<<" "<<b<<" -> "<<i*db_entries+b<<" -> "<<buckets_[b].size()<<std::endl;
+            map_[i * db_entries + b] = buckets_[b].size();
             buckets_[b].push_back(rawdb_[i]);
         }
     }
@@ -293,7 +294,6 @@ PIRResponseList BatchPIRServer::generate_response(uint32_t client_id, vector<PIR
         responses.push_back(server_list_[i].generate_response(client_id, queries[i]));
     }
 
-    
     return merge_responses(responses, client_id);
 }
 

@@ -16,7 +16,7 @@ Server::Server(PirParams &pir_params) : pir_params_(pir_params)
     is_client_keys_set_ = false;
 }
 
-Server::Server(PirParams &pir_params, vector<RawDB> sub_buckets) : pir_params_(pir_params)
+Server::Server(PirParams &pir_params, vector<RawDB> &sub_buckets) : pir_params_(pir_params)
 {
     context_ = new seal::SEALContext(pir_params.get_seal_parameters());
     evaluator_ = new seal::Evaluator(*context_);
@@ -29,10 +29,18 @@ Server::Server(PirParams &pir_params, vector<RawDB> sub_buckets) : pir_params_(p
     num_databases_ = pir_params_.get_db_count();
     is_db_preprocessed_ = false;
     is_client_keys_set_ = false;
-    rawdb_list_ = sub_buckets;
+    auto shared_data = std::make_shared<std::vector<RawDB>>(sub_buckets);
+    std::vector<RawDB> datas(*shared_data);
+    rawdb_list_.swap(datas);
     round_dbs();
+    // std::cout << "1" << std::endl;
+    // getchar();
     convert_merge_pir_dbs();
+    // std::cout << "2" << std::endl;
+    // getchar();
     ntt_preprocess_db();
+    // std::cout << "3" << std::endl;
+    // getchar();
 }
 
 void Server::set_client_keys(uint32_t client_id, std::pair<seal::GaloisKeys, seal::RelinKeys> keys)
@@ -199,7 +207,7 @@ void Server::merge_pir_dbs()
     }
 }
 
-void Server::merge_to_db(PirDB new_db, int rotation_index)
+void Server::merge_to_db(PirDB &new_db, int rotation_index)
 {
     const auto total_db_plaintexts = pir_params_.get_db_rows();
 
@@ -938,7 +946,7 @@ PIRResponseList Server::generate_response(uint32_t client_id, PIRQuery query)
     return response;
 }
 
-bool Server::check_decoded_entry(std::vector<unsigned char> entry, int index)
+bool Server::check_decoded_entry(std::vector<unsigned char> &entry, int index)
 {
     if (entry.size() != rawdb_list_[1][index].size())
     {
@@ -970,7 +978,7 @@ bool Server::check_decoded_entry(std::vector<unsigned char> entry, int index)
 
     return result;
 }
-bool Server::check_decoded_entries(std::vector<std::vector<unsigned char>> entries, vector<uint64_t> indices)
+bool Server::check_decoded_entries(std::vector<std::vector<unsigned char>> &entries, vector<uint64_t> &indices)
 {
     for (int i = 0; i < num_databases_; i++)
     {
