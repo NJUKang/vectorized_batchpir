@@ -45,7 +45,23 @@ target_include_directories(vectorized_batch_pir PRIVATE ${CMAKE_CURRENT_SOURCE_D
 set_target_properties(vectorized_batch_pir PROPERTIES CXX_STANDARD 17)
 
 # Add seal library
-find_package(SEAL 4.1 REQUIRED)
+find_package(SEAL 4.1.2 EXACT REQUIRED PATHS "${PROJECT_SOURCE_DIR}/build/")
+if(NOT SEAL_FOUND)
+    message("SEAL 4.1.2 was not found: clone and install SEAL locally")
+    if(NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/SEAL/native/src/CMakeLists.txt")
+        find_package(Git REQUIRED)
+        message("initialize Git submodule: extern/SEAL")
+        execute_process(COMMAND git submodule update --init --recursive extern/SEAL
+            WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} -S . -B build -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/build
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL")
+    execute_process(COMMAND cmake --build build
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL")
+    execute_process(COMMAND cmake --install build
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL")
+endif()
+
 target_link_libraries(vectorized_batch_pir SEAL::seal ${OPENSSL_LIBRARIES} OpenMP::OpenMP_CXX)
 
 # Add compiler flags for optimization
