@@ -578,15 +578,43 @@ std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client_batch
         auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
 
         // Merge the current batch's extract_response into final_response
-        for (const auto& [key, value] : extract_response)
+        for (const auto &[key, value] : extract_response)
         {
             final_response[key] = value;
         }
-        std::cout<<"over extract"<<std::endl;
+        std::cout << "over extract" << std::endl;
     }
 
     // Return the final response
     return final_response;
+}
+void print_m128i(const __m128i &value)
+{
+    // 提取 __m128i 中的两个 64 位整数并输出
+    uint64_t item1 = ((uint32_t *)(&value))[0];
+    uint64_t item2 = ((uint32_t *)(&value))[1];
+    uint64_t item3 = ((uint32_t *)(&value))[2];
+    uint64_t item4 = ((uint32_t *)(&value))[3];
+
+    std::cout << "([" << item1 << ", " << item2 << ", " << item3 << ", " << item4 << "])";
+}
+
+// 封装输出unordered_map的函数
+void print_unordered_map(const std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> &my_map)
+{
+    // 遍历 unordered_map 并输出内容
+    for (const auto &pair : my_map)
+    {
+        uint64_t key = pair.first;
+        __m128i first_block = std::get<0>(pair.second);
+        __m128i second_block = std::get<1>(pair.second);
+
+        std::cout << "Key: " << key << " -> ";
+        print_m128i(first_block);
+        std::cout << ", ";
+        print_m128i(second_block);
+        std::cout << std::endl;
+    }
 }
 
 int batchpir_test2(int argc, char *argv[])
@@ -610,7 +638,7 @@ int batchpir_test2(int argc, char *argv[])
         {
             entry_indices.emplace_back(i);
         }
-        batchpir_client_batch(io, entry_indices);
+        print_unordered_map(batchpir_client_batch(io, entry_indices));
     }
     else
     {
