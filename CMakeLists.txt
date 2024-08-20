@@ -23,7 +23,7 @@ ENDIF()
 
 FIND_PACKAGE(OpenMP REQUIRED)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fpic -Wno-deprecated-declarations -Wno-unused-result -Xpreprocessor -O3  -msse4.1")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fpic -Wno-deprecated-declarations -Wno-unused-result -Xpreprocessor -O3 -msse4.1")
 
 SET(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 
@@ -33,10 +33,10 @@ INCLUDE_DIRECTORIES(
 )
 
 # Get all source files under src
-file(GLOB_RECURSE SOURCES "src/main.cpp" "src/*.h")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
 
-# Create executable target and add source files
-add_executable(vectorized_batch_pir ${SOURCES})
+# Create static library target and add source files
+add_library(vectorized_batch_pir STATIC ${SOURCES})
 
 # Set include directories
 target_include_directories(vectorized_batch_pir PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/header ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -68,3 +68,4 @@ target_link_libraries(vectorized_batch_pir SEAL::seal ${OPENSSL_LIBRARIES} OpenM
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(vectorized_batch_pir PRIVATE "-O3")
 endif()
+
