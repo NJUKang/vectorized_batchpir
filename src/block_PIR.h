@@ -13,6 +13,7 @@
 #include "../header/batchpirclient.h"
 #include <iostream>
 #include "../../Kunlun/netio/stream_channel.hpp"
+#include "../../Kunlun/mpc/okvs/okvs_utility.hpp"
 #include <unordered_map>
 void printM128iVector(const std::vector<__m128i> &vec)
 {
@@ -129,154 +130,154 @@ stringstream recvStringStream(NetIO &io)
     io.ReceiveString(s);
     return stringstream(s);
 }
-void batchpir_combined()
-{
-    std::vector<std::tuple<__m128i, __m128i>> values(1ull << 20);
+// void batchpir_combined()
+// {
+//     std::vector<std::tuple<__m128i, __m128i>> values(1ull << 20);
 
-    for (size_t i = 0; i < 1ull << 20; ++i)
-    {
-        values[i] = std::make_tuple(_mm_set_epi32(i + 1, i + 1, i + 1, i + 1), _mm_set_epi32(i + 1, i + 1, i + 1, i + 1)); // 将第i个元素设置为__m128i(i)
-    }
-    std::vector<uint64_t> entry_indices; // 示例 entry indices
-    for (auto i = 0; i < 1ull << 8; i++)
-    {
-        entry_indices.emplace_back(i);
-    }
-    auto client_id = 0;
-    uint64_t query_num = entry_indices.size();
-    auto db_size = values.size();
+//     for (size_t i = 0; i < 1ull << 20; ++i)
+//     {
+//         values[i] = std::make_tuple(_mm_set_epi32(i + 1, i + 1, i + 1, i + 1), _mm_set_epi32(i + 1, i + 1, i + 1, i + 1)); // 将第i个元素设置为__m128i(i)
+//     }
+//     std::vector<uint64_t> entry_indices; // 示例 entry indices
+//     for (auto i = 0; i < 1ull << 8; i++)
+//     {
+//         entry_indices.emplace_back(i);
+//     }
+//     auto client_id = 0;
+//     uint64_t query_num = entry_indices.size();
+//     auto db_size = values.size();
 
-    string selection = std::to_string(query_num) + "," + std::to_string(db_size) + "," + std::to_string(32);
-    auto encryption_params = utils::create_encryption_parameters(selection);
-    BatchPirParams params(query_num, db_size, 32, encryption_params);
-    BatchPIRServer batch_server(params, values);
-    seal::SEALContext context(encryption_params);
-    auto map = batch_server.get_hash_map();
+//     string selection = std::to_string(query_num) + "," + std::to_string(db_size) + "," + std::to_string(32);
+//     auto encryption_params = utils::create_encryption_parameters(selection);
+//     BatchPirParams params(query_num, db_size, 32, encryption_params);
+//     BatchPIRServer batch_server(params, values);
+//     seal::SEALContext context(encryption_params);
+//     auto map = batch_server.get_hash_map();
 
-    stringstream ss;
-    seal::GaloisKeys glk;
-    seal::RelinKeys rlk;
+//     stringstream ss;
+//     seal::GaloisKeys glk;
+//     seal::RelinKeys rlk;
 
-    // 客户端部分生成密钥并加载到服务器部分
-    BatchPIRClient batch_client(params);
-    auto public_keys = batch_client.get_public_keys();
-    public_keys.first.save(ss);
-    public_keys.second.save(ss);
-    glk.load(context, ss);
-    rlk.load(context, ss);
-    batch_server.set_client_keys(client_id, public_keys);
+//     // 客户端部分生成密钥并加载到服务器部分
+//     BatchPIRClient batch_client(params);
+//     auto public_keys = batch_client.get_public_keys();
+//     public_keys.first.save(ss);
+//     public_keys.second.save(ss);
+//     glk.load(context, ss);
+//     rlk.load(context, ss);
+//     batch_server.set_client_keys(client_id, public_keys);
 
-    // 设置服务器端的哈希映射到客户端
-    batch_client.set_map(map);
-    std::cout << "process1" << std::endl;
-    // 客户端生成查询
-    auto queries = batch_client.create_queries(entry_indices);
-    std::vector<PIRQuery> server_queries;
+//     // 设置服务器端的哈希映射到客户端
+//     batch_client.set_map(map);
+//     std::cout << "process1" << std::endl;
+//     // 客户端生成查询
+//     auto queries = batch_client.create_queries(entry_indices);
+//     std::vector<PIRQuery> server_queries;
 
-    std::cout << "process2" << std::endl;
-    // 将客户端查询加载到服务器
-    stringstream sss;
-    for (auto query : queries)
-    {
-        for (auto cipher : query)
-        {
-            cipher.save(sss);
-        }
-        PIRQuery q;
-        for (auto j = 0; j < query.size(); j++)
-        {
-            seal::Ciphertext cp;
-            cp.load(context, sss);
-            q.emplace_back(cp);
-        }
-        server_queries.push_back(q);
-    }
+//     std::cout << "process2" << std::endl;
+//     // 将客户端查询加载到服务器
+//     stringstream sss;
+//     for (auto query : queries)
+//     {
+//         for (auto cipher : query)
+//         {
+//             cipher.save(sss);
+//         }
+//         PIRQuery q;
+//         for (auto j = 0; j < query.size(); j++)
+//         {
+//             seal::Ciphertext cp;
+//             cp.load(context, sss);
+//             q.emplace_back(cp);
+//         }
+//         server_queries.push_back(q);
+//     }
 
-    // 服务器生成响应
-    std::cout << "process3" << std::endl;
-    PIRResponseList responses = batch_server.generate_response(client_id, server_queries);
+//     // 服务器生成响应
+//     std::cout << "process3" << std::endl;
+//     PIRResponseList responses = batch_server.generate_response(client_id, server_queries);
 
-    std::cout << "process4" << std::endl;
-    // 客户端解码响应
-    stringstream response_ss;
-    for (auto response : responses)
-    {
-        response.save(response_ss);
-    }
-    PIRResponseList client_responses;
-    std::cout << "process5" << std::endl;
-    for (auto i = 0; i < responses.size(); i++)
-    {
-        seal::Ciphertext cp;
-        cp.load(context, response_ss);
-        client_responses.emplace_back(cp);
-    }
-    std::cout << "process6" << std::endl;
-    auto decode_responses = batch_client.decode_responses_chunks(client_responses);
+//     std::cout << "process4" << std::endl;
+//     // 客户端解码响应
+//     stringstream response_ss;
+//     for (auto response : responses)
+//     {
+//         response.save(response_ss);
+//     }
+//     PIRResponseList client_responses;
+//     std::cout << "process5" << std::endl;
+//     for (auto i = 0; i < responses.size(); i++)
+//     {
+//         seal::Ciphertext cp;
+//         cp.load(context, response_ss);
+//         client_responses.emplace_back(cp);
+//     }
+//     std::cout << "process6" << std::endl;
+//     auto decode_responses = batch_client.decode_responses_chunks(client_responses);
 
-    // 输出或处理解码后的响应
-    std::cout << "over" << std::endl;
-    auto cuckoo_table = batch_client.get_cuckoo_table();
-    auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
-    printBlockTupleVector(extract_response);
-    // getchar();
-}
-void batchpir_server(NetIO &io, std::vector<std::tuple<block, block>> values)
-{
-    auto client_id = 0;
-    uint64_t query_num;
-    io.ReceiveInteger(query_num);
-    auto db_size = values.size();
-    io.SendInteger(db_size);
+//     // 输出或处理解码后的响应
+//     std::cout << "over" << std::endl;
+//     auto cuckoo_table = batch_client.get_cuckoo_table();
+//     auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
+//     // printBlockTupleVector(extract_response);
+//     // getchar();
+// }
+// void batchpir_server(NetIO &io, std::vector<BlockArrayValue> values)
+// {
+//     auto client_id = 0;
+//     uint64_t query_num;
+//     io.ReceiveInteger(query_num);
+//     auto db_size = values.size();
+//     io.SendInteger(db_size);
 
-    string selection = std::to_string(query_num) + "," + std::to_string(db_size) + "," + std::to_string(32);
-    auto encryption_params = utils::create_encryption_parameters(selection);
-    BatchPirParams params(query_num, db_size, 32, encryption_params);
-    BatchPIRServer batch_server(params, values);
-    io.SendInteger(params.get_max_bucket_size());
-    seal::SEALContext context(encryption_params);
-    auto map = batch_server.get_hash_map();
-    SendMap(io, map);
+//     string selection = std::to_string(query_num) + "," + std::to_string(db_size) + "," + std::to_string(32);
+//     auto encryption_params = utils::create_encryption_parameters(selection);
+//     BatchPirParams params(query_num, db_size, 32, encryption_params);
+//     BatchPIRServer batch_server(params, values);
+//     io.SendInteger(params.get_max_bucket_size());
+//     seal::SEALContext context(encryption_params);
+//     auto map = batch_server.get_hash_map();
+//     SendMap(io, map);
 
-    seal::GaloisKeys glk;
-    seal::RelinKeys rlk;
-    stringstream ss = recvStringStream(io);
-    glk.load(context, ss);
-    rlk.load(context, ss);
-    auto public_keys = std::make_pair(glk, rlk);
-    batch_server.set_client_keys(client_id, public_keys);
+//     seal::GaloisKeys glk;
+//     seal::RelinKeys rlk;
+//     stringstream ss = recvStringStream(io);
+//     glk.load(context, ss);
+//     rlk.load(context, ss);
+//     auto public_keys = std::make_pair(glk, rlk);
+//     batch_server.set_client_keys(client_id, public_keys);
 
-    uint64_t queries_size;
-    io.ReceiveInteger(queries_size);
-    std::vector<PIRQuery> queries(queries_size);
-    for (auto i = 0; i < queries_size; i++)
-    {
-        uint64_t query_size;
-        io.ReceiveInteger(query_size);
-        auto sss = recvStringStream(io);
-        for (auto j = 0; j < query_size; j++)
-        {
-            seal::Ciphertext cp;
-            cp.load(context, sss);
-            queries[i].emplace_back(cp);
-        }
-    }
+//     uint64_t queries_size;
+//     io.ReceiveInteger(queries_size);
+//     std::vector<PIRQuery> queries(queries_size);
+//     for (auto i = 0; i < queries_size; i++)
+//     {
+//         uint64_t query_size;
+//         io.ReceiveInteger(query_size);
+//         auto sss = recvStringStream(io);
+//         for (auto j = 0; j < query_size; j++)
+//         {
+//             seal::Ciphertext cp;
+//             cp.load(context, sss);
+//             queries[i].emplace_back(cp);
+//         }
+//     }
 
-    PIRResponseList responses = batch_server.generate_response(client_id, queries);
-    io.SendInteger(uint64_t(responses.size()));
+//     PIRResponseList responses = batch_server.generate_response(client_id, queries);
+//     io.SendInteger(uint64_t(responses.size()));
 
-    stringstream response_ss;
-    for (auto response : responses)
-    {
-        response.save(response_ss);
-    }
-    sendStringStream(io, response_ss);
+//     stringstream response_ss;
+//     for (auto response : responses)
+//     {
+//         response.save(response_ss);
+//     }
+//     sendStringStream(io, response_ss);
 
-    std::cout << "Server: Response generation and sending complete." << std::endl;
-    // getchar();
-}
-
-std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client(NetIO &io, std::vector<uint64_t> entry_indices)
+//     std::cout << "Server: Response generation and sending complete." << std::endl;
+//     // getchar();
+// }
+template <size_t N = 9>
+std::unordered_map<uint64_t, BlockArrayValue<N>> batchpir_client(NetIO &io, std::vector<uint64_t> entry_indices)
 {
     auto query_num = entry_indices.size();
     io.SendInteger(query_num);
@@ -328,7 +329,7 @@ std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client(NetIO
     auto decode_responses = batch_client.decode_responses_chunks(responses);
     auto cuckoo_table = batch_client.get_cuckoo_table_raw();
     auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
-    printBlockTupleVector(extract_response);
+    // printBlockTupleVector(extract_response);
 
     // std::cout << "Client: Response received and processed." << std::endl;
     // getchar();
@@ -451,7 +452,8 @@ std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client(NetIO
 
 //     return 0;
 // }
-void batchpir_server_batch(NetIO &io, std::vector<std::tuple<block, block>> values)
+template <size_t N = 9>
+void batchpir_server_batch(NetIO &io, std::vector<BlockArrayValue<N>> values)
 {
     auto client_id = 0;
     auto batch_size = 512;
@@ -510,8 +512,8 @@ void batchpir_server_batch(NetIO &io, std::vector<std::tuple<block, block>> valu
 
     // getchar();
 }
-
-std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client_batch(NetIO &io, std::vector<uint64_t> entry_indices)
+template <size_t N = 9>
+std::unordered_map<uint64_t, BlockArrayValue<N>> batchpir_client_batch(NetIO &io, std::vector<uint64_t> entry_indices)
 {
     auto query_num = entry_indices.size();
     auto batch_size = 512;
@@ -529,7 +531,7 @@ std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client_batch
     auto map = ReceiveMap(io);
     seal::SEALContext context(encryption_params);
 
-    std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> final_response;
+    std::unordered_map<uint64_t, BlockArrayValue<N>> final_response;
 
     for (uint64_t start = 0; start < query_num; start += batch_size)
     {
@@ -575,7 +577,7 @@ std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> batchpir_client_batch
 
         auto decode_responses = batch_client.decode_responses_chunks(responses);
         auto cuckoo_table = batch_client.get_cuckoo_table_raw();
-        auto extract_response = batch_client.extractResponse(decode_responses, cuckoo_table);
+        auto extract_response = batch_client.extractResponse<N>(decode_responses, cuckoo_table);
 
         // Merge the current batch's extract_response into final_response
         for (const auto &[key, value] : extract_response)
@@ -600,20 +602,24 @@ void print_m128i(const __m128i &value)
 }
 
 // 封装输出unordered_map的函数
-void print_unordered_map(const std::unordered_map<uint64_t, std::tuple<__m128i, __m128i>> &my_map)
+template <size_t N = 9>
+void print_unordered_map(const std::unordered_map<uint64_t, BlockArrayValue<N>> &my_map)
 {
+    // return ;
     // 遍历 unordered_map 并输出内容
     for (const auto &pair : my_map)
     {
         uint64_t key = pair.first;
-        __m128i first_block = std::get<0>(pair.second);
-        __m128i second_block = std::get<1>(pair.second);
+        BlockArrayValue<N> blockArray = (BlockArrayValue<N>)pair.second; // 绑定为 const 引用
 
         std::cout << "Key: " << key << " -> ";
-        print_m128i(first_block);
-        std::cout << ", ";
-        print_m128i(second_block);
-        std::cout << std::endl;
+        uint32_t len = sizeof(blockArray.var) / sizeof(block);
+        for (auto i = 0; i < len; ++i)
+        {
+            std::cout << ((uint32_t *)(&blockArray.var[i]))[0] << " " << ((uint32_t *)(&blockArray.var[i]))[1] << std::endl;
+            std::cout << ((uint32_t *)(&blockArray.var[i]))[2] << " " << ((uint32_t *)(&blockArray.var[i]))[3] << std::endl;
+        }
+        std::cout << "" << std::endl;
     }
 }
 
@@ -636,9 +642,10 @@ int batchpir_test2(int argc, char *argv[])
         std::vector<uint64_t> entry_indices; // 示例 entry indices
         for (auto i = 0; i < 3939; i++)
         {
-            entry_indices.emplace_back(i);
+            entry_indices.emplace_back(i + 1);
         }
-        print_unordered_map(batchpir_client_batch(io, entry_indices));
+        print_unordered_map(batchpir_client_batch<2>(io, entry_indices));
+        std::cout << "hello world1" << std::endl;
     }
     else
     {
@@ -646,13 +653,18 @@ int batchpir_test2(int argc, char *argv[])
         std::cout << "Server process started." << std::endl;
         NetIO io("server", "", 9090);
 
-        std::vector<std::tuple<block, block>> values(42768); // 示例数据
+        std::vector<BlockArrayValue<2>> values(42768); // 示例数据
         for (size_t i = 0; i < values.size(); ++i)
         {
-            values[i] = std::make_tuple(_mm_set_epi32(i + 1, i + 1, i + 1, i + 1), _mm_set_epi32(i + 1, i + 1, i + 1, i + 1));
+            BlockArrayValue<2> value;
+            block block_value = _mm_set1_epi32(static_cast<int>(i + 1)); // 所有分量都设置为 i + 1
+            for (auto j = 0; j < sizeof(BlockArrayValue<2>) / sizeof(block); j++)
+                value.var[j] = block_value;
+            values[i] = value;
         }
 
-        batchpir_server_batch(io, values);
+        batchpir_server_batch<2>(io, values);
+        std::cout << "hello world2" << std::endl;
     }
 
     return 0;

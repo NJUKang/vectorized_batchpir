@@ -33,7 +33,7 @@ INCLUDE_DIRECTORIES(
 )
 
 # Get all source files under src
-file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
+file(GLOB_RECURSE SOURCES "src/main.cpp" "src/*.h")
 
 # Create executable target and add source files
 add_executable(vectorized_batch_pir ${SOURCES})
