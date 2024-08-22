@@ -283,10 +283,10 @@ std::unordered_map<uint64_t, BlockArrayValue<N>> batchpir_client(NetIO &io, std:
     io.SendInteger(query_num);
     uint64_t db_size;
     io.ReceiveInteger(db_size);
-    string selection = std::to_string(query_num) + "," + std::to_string(db_size) + "," + std::to_string(32);
+    string selection = std::to_string(query_num) + "," + std::to_string(db_size) + "," + std::to_string(16*N);
 
     auto encryption_params = utils::create_encryption_parameters(selection);
-    BatchPirParams params(query_num, db_size, 32, encryption_params);
+    BatchPirParams params(query_num, db_size, 16*N, encryption_params);
     uint64_t max_bucket_size;
     io.ReceiveInteger(max_bucket_size);
     params.set_max_bucket_size(max_bucket_size);
@@ -462,9 +462,9 @@ void batchpir_server_batch(NetIO &io, std::vector<BlockArrayValue<N>> values)
     auto db_size = values.size();
     io.SendInteger(db_size);
 
-    string selection = std::to_string(batch_size) + "," + std::to_string(db_size) + "," + std::to_string(32);
+    string selection = std::to_string(batch_size) + "," + std::to_string(db_size) + "," + std::to_string(16*N);
     auto encryption_params = utils::create_encryption_parameters(selection);
-    BatchPirParams params(batch_size, db_size, 32, encryption_params);
+    BatchPirParams params(batch_size, db_size, 16*N, encryption_params);
     BatchPIRServer batch_server(params, values);
     io.SendInteger(params.get_max_bucket_size());
     seal::SEALContext context(encryption_params);
@@ -520,10 +520,10 @@ std::unordered_map<uint64_t, BlockArrayValue<N>> batchpir_client_batch(NetIO &io
     io.SendInteger(query_num);
     uint64_t db_size;
     io.ReceiveInteger(db_size);
-    string selection = std::to_string(batch_size) + "," + std::to_string(db_size) + "," + std::to_string(32);
+    string selection = std::to_string(batch_size) + "," + std::to_string(db_size) + "," + std::to_string(16*N);
 
     auto encryption_params = utils::create_encryption_parameters(selection);
-    BatchPirParams params(batch_size, db_size, 32, encryption_params);
+    BatchPirParams params(batch_size, db_size, 16*N, encryption_params);
     uint64_t max_bucket_size;
     io.ReceiveInteger(max_bucket_size);
     params.set_max_bucket_size(max_bucket_size);
