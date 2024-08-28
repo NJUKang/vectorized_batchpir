@@ -46,6 +46,7 @@ set_target_properties(vectorized_batch_pir PROPERTIES CXX_STANDARD 17)
 
 # Add seal library
 find_package(SEAL 4.1.2 EXACT QUIET PATHS "${PROJECT_SOURCE_DIR}/build/")
+
 if(NOT SEAL_FOUND)
     message("SEAL 4.1.2 was not found: clone and install SEAL locally")
     if(NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/SEAL/native/src/CMakeLists.txt")

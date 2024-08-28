@@ -5,13 +5,12 @@
 #include "server.h"
 #include "../src/utils.h"
 #include <emmintrin.h>
-
+template <size_t N = 9>
 class BatchPIRServer
 {
 
 public:
     BatchPIRServer(BatchPirParams &batchpir_params);
-    template <size_t N = 9>
     BatchPIRServer(BatchPirParams &batchpir_params, std::vector<BlockArrayValue<N>> data);
     std::unordered_map<uint64_t, uint64_t> get_hash_map();
     void set_client_keys(uint32_t client_id, std::pair<seal::GaloisKeys, seal::RelinKeys> keys);
@@ -40,8 +39,8 @@ private:
     PIRResponseList merge_responses(vector<PIRResponseList> &responses, uint32_t client_id);
     void print_stats() const;
 };
-
-BatchPIRServer::BatchPIRServer(BatchPirParams &batchpir_params)
+template <size_t N>
+BatchPIRServer<N>::BatchPIRServer(BatchPirParams &batchpir_params)
 {
     batchpir_params_ = &batchpir_params;
     is_client_keys_set_ = false;
@@ -94,8 +93,8 @@ std::vector<unsigned char> convertBlockArrayValueToVector(const BlockArrayValue<
 
     return result;
 }
-template <size_t N = 9>
-BatchPIRServer::BatchPIRServer(BatchPirParams &batchpir_params, std::vector<BlockArrayValue<N>> data)
+template <size_t N>
+BatchPIRServer<N>::BatchPIRServer(BatchPirParams &batchpir_params, std::vector<BlockArrayValue<N>> data)
 {
     batchpir_params_ = &batchpir_params;
     is_client_keys_set_ = false;
@@ -123,7 +122,8 @@ BatchPIRServer::BatchPIRServer(BatchPirParams &batchpir_params, std::vector<Bloc
     prepare_pir_server();
     std::cout << "BatchPIRServer: PIR servers preparation complete." << std::endl;
 }
-void BatchPIRServer::populate_raw_db()
+template <size_t N>
+void BatchPIRServer<N>::populate_raw_db()
 {
     auto db_entries = batchpir_params_->get_num_entries();
     auto entry_size = batchpir_params_->get_entry_size();
@@ -149,8 +149,8 @@ void BatchPIRServer::populate_raw_db()
         rawdb_[i] = generate_random_entry(i);
     }
 }
-
-std::unordered_map<uint64_t, uint64_t> BatchPIRServer::get_hash_map()
+template <size_t N>
+std::unordered_map<uint64_t, uint64_t> BatchPIRServer<N>::get_hash_map()
 {
 
     if (!is_simple_hash_)
@@ -159,8 +159,8 @@ std::unordered_map<uint64_t, uint64_t> BatchPIRServer::get_hash_map()
     }
     return map_;
 }
-
-std::size_t BatchPIRServer::get_max_bucket_size() const
+template <size_t N>
+std::size_t BatchPIRServer<N>::get_max_bucket_size() const
 {
     std::size_t max_size = 0;
     for (const auto &bucket : buckets_)
@@ -169,8 +169,8 @@ std::size_t BatchPIRServer::get_max_bucket_size() const
     }
     return max_size;
 }
-
-size_t BatchPIRServer::get_min_bucket_size() const
+template <size_t N>
+size_t BatchPIRServer<N>::get_min_bucket_size() const
 {
     size_t min_size = std::numeric_limits<size_t>::max();
     for (const auto &bucket : buckets_)
@@ -179,8 +179,8 @@ size_t BatchPIRServer::get_min_bucket_size() const
     }
     return min_size;
 }
-
-size_t BatchPIRServer::get_avg_bucket_size() const
+template <size_t N>
+size_t BatchPIRServer<N>::get_avg_bucket_size() const
 {
     double total_size = 0;
     for (const auto &bucket : buckets_)
@@ -189,8 +189,8 @@ size_t BatchPIRServer::get_avg_bucket_size() const
     }
     return total_size / buckets_.size();
 }
-
-void BatchPIRServer::simeple_hash()
+template <size_t N>
+void BatchPIRServer<N>::simeple_hash()
 {
     auto total_buckets = ceil(batchpir_params_->get_cuckoo_factor() * batchpir_params_->get_batch_size());
     auto db_entries = batchpir_params_->get_num_entries();
@@ -211,8 +211,8 @@ void BatchPIRServer::simeple_hash()
     batchpir_params_->set_max_bucket_size(get_max_bucket_size());
     balance_buckets();
 }
-
-std::vector<std::vector<uint64_t>> BatchPIRServer::simeple_hash_with_map()
+template <size_t N>
+std::vector<std::vector<uint64_t>> BatchPIRServer<N>::simeple_hash_with_map()
 {
     auto total_buckets = ceil(batchpir_params_->get_cuckoo_factor() * batchpir_params_->get_batch_size());
     auto db_entries = batchpir_params_->get_num_entries();
@@ -240,8 +240,8 @@ std::vector<std::vector<uint64_t>> BatchPIRServer::simeple_hash_with_map()
 
     return map;
 }
-
-void BatchPIRServer::balance_buckets()
+template <size_t N>
+void BatchPIRServer<N>::balance_buckets()
 {
     auto max_bucket = batchpir_params_->get_max_bucket_size();
     auto num_buckets = buckets_.size();
@@ -264,8 +264,8 @@ void BatchPIRServer::balance_buckets()
 
     is_simple_hash_ = true;
 }
-
-void BatchPIRServer::print_stats() const
+template <size_t N>
+void BatchPIRServer<N>::print_stats() const
 {
     std::cout << "BatchPIRServer: Bucket Statistics:\n";
     std::cout << "===================\n";
@@ -279,14 +279,14 @@ void BatchPIRServer::print_stats() const
     std::cout << "Min Bucket Size: " << min_bucket_size << "\n";
     std::cout << "Avg Bucket Size: " << avg_bucket_size << "\n";
 }
-
-size_t BatchPIRServer::get_first_dimension_size(size_t num_entries)
+template <size_t N>
+size_t BatchPIRServer<N>::get_first_dimension_size(size_t num_entries)
 {
     size_t cube_root = std::ceil(std::cbrt(num_entries));
     return utils::next_power_of_two(cube_root);
 }
-
-void BatchPIRServer::prepare_pir_server()
+template <size_t N>
+void BatchPIRServer<N>::prepare_pir_server()
 {
 
     if (!is_simple_hash_)
@@ -317,8 +317,8 @@ void BatchPIRServer::prepare_pir_server()
         server_list_.push_back(server);
     }
 }
-
-void BatchPIRServer::set_client_keys(uint32_t client_id, std::pair<seal::GaloisKeys, seal::RelinKeys> keys)
+template <size_t N>
+void BatchPIRServer<N>::set_client_keys(uint32_t client_id, std::pair<seal::GaloisKeys, seal::RelinKeys> keys)
 {
     for (int i = 0; i < server_list_.size(); i++)
     {
@@ -327,7 +327,8 @@ void BatchPIRServer::set_client_keys(uint32_t client_id, std::pair<seal::GaloisK
     is_client_keys_set_ = true;
 }
 
-void BatchPIRServer::get_client_keys()
+template <size_t N>
+void BatchPIRServer<N>::get_client_keys()
 {
 
     for (int i = 0; i < server_list_.size(); i++)
@@ -336,7 +337,8 @@ void BatchPIRServer::get_client_keys()
     }
 }
 
-PIRResponseList BatchPIRServer::generate_response(uint32_t client_id, vector<PIRQuery> queries)
+template <size_t N>
+PIRResponseList BatchPIRServer<N>::generate_response(uint32_t client_id, vector<PIRQuery> queries)
 {
 
     if (!is_client_keys_set_)
@@ -352,13 +354,14 @@ PIRResponseList BatchPIRServer::generate_response(uint32_t client_id, vector<PIR
 
     return merge_responses(responses, client_id);
 }
-
-PIRResponseList BatchPIRServer::merge_responses(vector<PIRResponseList> &responses, uint32_t client_id)
+template <size_t N>
+PIRResponseList BatchPIRServer<N>::merge_responses(vector<PIRResponseList> &responses, uint32_t client_id)
 {
     return server_list_[0].merge_responses_chunks_buckets(responses, client_id);
 }
 
-bool BatchPIRServer::check_decoded_entries(vector<std::vector<std::vector<unsigned char>>> entries_list, vector<uint64_t> cuckoo_table)
+template <size_t N>
+bool BatchPIRServer<N>::check_decoded_entries(vector<std::vector<std::vector<unsigned char>>> entries_list, vector<uint64_t> cuckoo_table)
 {
     size_t entry_size = batchpir_params_->get_entry_size();
     size_t dim_size = batchpir_params_->get_first_dimension_size();

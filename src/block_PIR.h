@@ -465,7 +465,7 @@ void batchpir_server_batch(NetIO &io, std::vector<BlockArrayValue<N>> values)
     string selection = std::to_string(batch_size) + "," + std::to_string(db_size) + "," + std::to_string(16*N);
     auto encryption_params = utils::create_encryption_parameters(selection);
     BatchPirParams params(batch_size, db_size, 16*N, encryption_params);
-    BatchPIRServer batch_server(params, values);
+    BatchPIRServer<N> batch_server(params, values);
     io.SendInteger(params.get_max_bucket_size());
     seal::SEALContext context(encryption_params);
     auto map = batch_server.get_hash_map();
