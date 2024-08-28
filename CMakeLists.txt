@@ -60,6 +60,7 @@ if(NOT SEAL_FOUND)
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL")
     execute_process(COMMAND cmake --install build
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL")
+    find_package(SEAL 4.1.2 EXACT REQUIRED PATHS "${PROJECT_SOURCE_DIR}/build/")
 endif()
 
 target_link_libraries(vectorized_batch_pir SEAL::seal ${OPENSSL_LIBRARIES} OpenMP::OpenMP_CXX)
