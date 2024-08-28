@@ -415,7 +415,7 @@ BlockArrayValue<N> convertVectorToBlockArrayValue(const std::vector<unsigned cha
 
     return result;
 }
-template <size_t N = 9>
+template <size_t N>
 std::unordered_map<uint64_t, BlockArrayValue<N>> BatchPIRClient::extractResponse(vector<std::vector<std::vector<unsigned char>>> entries_list, vector<uint64_t> cuckoo_table)
 {
     size_t entry_size = batchpir_params_.get_entry_size();
