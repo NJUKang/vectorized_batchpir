@@ -3,7 +3,7 @@
 
 #include "BatchPIRParams.h"
 #include "PIRServer.h"
-#include "utils/utils.h"
+#include "utils.h"
 #include <emmintrin.h>
 template <size_t N = 9>
 class BatchPIRServer

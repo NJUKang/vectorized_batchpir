@@ -3,7 +3,7 @@
 
 #include "BatchPIRParams.h"
 #include "PIRClient.h"
-#include "utils/utils.h"
+#include "utils.h"
 #include <emmintrin.h>
 
 using namespace std;

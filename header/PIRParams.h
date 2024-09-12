@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
-#include "utils/utils.h"
+#include "utils.h"
 #include "seal/seal.h"
 #include "Kunlun/mpc/okvs/okvs_utility.hpp"
 
