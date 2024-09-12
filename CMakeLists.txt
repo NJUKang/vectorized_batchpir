@@ -4,7 +4,6 @@ project(VectorizedBatchPIR)
 
 # Set the build directory
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
-set(CMAKE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/header)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 # Set the output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -51,7 +50,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_library(vectorized_batch_pir STATIC ${SOURCES})
 
 # Set include directories
-target_include_directories(vectorized_batch_pir PRIVATE ${CMAKE_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/extern ${OPENSSL_INCLUDE_DIR})
+target_include_directories(vectorized_batch_pir PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/header ${CMAKE_CURRENT_SOURCE_DIR}/extern ${OPENSSL_INCLUDE_DIR})
 
 target_link_libraries(vectorized_batch_pir SEAL::seal ${OPENSSL_LIBRARIES} OpenMP::OpenMP_CXX)
 
