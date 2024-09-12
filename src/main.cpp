@@ -3,13 +3,13 @@
 #include <cassert>
 #include <chrono>
 #include <functional>
-#include "server.h"
-#include "pirparams.h"
-#include "client.h"
-#include "batchpirparams.h"
-#include "batchpirserver.h"
-#include "batchpirclient.h"
-#include "block_PIR.h"
+#include "PIRServer.h"
+#include "PIRParams.h"
+#include "PIRClient.h"
+#include "BatchPIRParams.h"
+#include "BatchPIRServer.h"
+#include "BatchPIRClient.h"
+#include "BlockPIR.h"
 using namespace std;
 using namespace chrono;
 

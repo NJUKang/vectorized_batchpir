@@ -5,8 +5,9 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include "pirparams.h"
 #include <bitset>
+
+#include "PIRParams.h"
 
 class Client {
 public:

@@ -1,9 +1,9 @@
 #ifndef BATCHPIR_SERVER_H
 #define BATCHPIR_SERVER_H
 
-#include "batchpirparams.h"
-#include "server.h"
-#include "../src/utils.h"
+#include "BatchPIRParams.h"
+#include "PIRServer.h"
+#include "utils/utils.h"
 #include <emmintrin.h>
 template <size_t N = 9>
 class BatchPIRServer

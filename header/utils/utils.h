@@ -7,7 +7,7 @@
 #include <iostream>
 #include <cstdint>
 #include <vector>
-#include "../header/database_constants.h"
+#include "DatabaseConstants.h"
 #include "seal/seal.h"
 
 
@@ -191,12 +191,6 @@ std::cout << "+---------------------------------------------------+" << std::end
             
         }
     }
-
- 
-
-
-
-
 } // namespace utils
 
 #endif // UTILS_H

@@ -1,9 +1,9 @@
 #ifndef BATCHPIRCLIENT_H
 #define BATCHPIRCLIENT_H
 
-#include "batchpirparams.h"
-#include "client.h"
-#include "../src/utils.h"
+#include "BatchPIRParams.h"
+#include "PIRClient.h"
+#include "utils/utils.h"
 #include <emmintrin.h>
 
 using namespace std;

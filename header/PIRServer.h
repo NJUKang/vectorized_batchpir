@@ -5,8 +5,9 @@
 #include <vector>
 #include <iostream>
 #include <chrono>
-#include "pirparams.h"
 #include <bitset>
+
+#include "PIRParams.h"
 
 using namespace seal;
 using namespace utils;

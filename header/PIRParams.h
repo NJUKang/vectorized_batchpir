@@ -5,9 +5,9 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
-#include "../src/utils.h"
+#include "utils/utils.h"
 #include "seal/seal.h"
-#include "../../Kunlun/mpc/okvs/okvs_utility.hpp"
+#include "Kunlun/mpc/okvs/okvs_utility.hpp"
 
 using namespace std;
 
